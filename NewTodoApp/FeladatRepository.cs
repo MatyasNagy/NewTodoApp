@@ -32,7 +32,36 @@ namespace NewTodoApp
             }
         }
 
-        public void Listahozad(Feladat feladat, User user)
+        public void Listahozad(Feladat feladat, User user) //Újraírva
+        {
+            string queryString = "INSERT INTO FeladatTable VALUES(@FeladatCim, @FeladatLeiras, @FeladatDate) ";
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            using (SqlCommand command = new SqlCommand(queryString, connection))
+            {
+                connection.Open();
+                command.Parameters.AddWithValue("@FeladatCim", feladat.Cim);
+                command.Parameters.AddWithValue("@FeladatLeiras", feladat.Leiras);
+                command.Parameters.AddWithValue("@FeladatDate", feladat.Datum);
+                command.ExecuteNonQuery();
+            }
+
+            string queryStringosszerendel = "DECLARE @FelId as int; " +
+            "DECLARE @UserId as int; " +
+            "SET @FelId = (SELECT FeladatTable.Id FROM FeladatTable WHERE FeladatTable.FeladatCim = @FeladatCim); " +
+            "SET @UserId = (SELECT UserTable.Id FROM UserTable WHERE UserTable.UserName = @Username); " +
+            "INSERT INTO FeladatKiosztasTable VALUES(@FelId, @UserId); ";
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            using (SqlCommand command = new SqlCommand(queryStringosszerendel, connection))
+            {
+                connection.Open();
+                command.Parameters.AddWithValue("@FeladatCim", feladat.Cim);
+                command.Parameters.AddWithValue("@Username", user.UserName);
+                command.ExecuteNonQuery();
+            }
+        }
+        public void Listahozad_old(Feladat feladat, User user)  //RÉGI METODUS
         {
             string queryString = "INSERT INTO FeladatTable VALUES(@FeladatCim, @FeladatLeiras, @FeladatDate) ";
             //Feladat aktfeladat = new Feladat(TextBoxCim.,);
@@ -89,11 +118,37 @@ namespace NewTodoApp
 
                 command.ExecuteNonQuery();
             }
-
-
         }
 
-        public List<string> Megtekint(string fa)
+        public List<string> Megtekint(string fa) //ÚJRAIRVA
+        {
+            List<string> megjelenitoString = new List<string>();
+            string sqlQuerryString = "" +
+                "SELECT FeladatTable.FeladatCim,FeladatTable.FeladatLeiras,FeladatTable.FeladatDate, UserTable.UserName FROM FeladatTable "+
+                "INNER JOIN FeladatKiosztasTable ON FeladatTable.Id = FeladatKiosztasTable.FeladatId "+
+                "INNER JOIN UserTable ON FeladatKiosztasTable.UserId = UserTable.Id "+
+                "WHERE FeladatTable.FeladatCim = @feladatcim ";
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            using (SqlCommand command = new SqlCommand(sqlQuerryString, connection))
+            {
+                connection.Open();
+                command.Parameters.AddWithValue("@feladatcim", fa);
+                using (SqlDataReader sqlReader = command.ExecuteReader())
+                {
+                    while (sqlReader.Read())
+                    {
+                        for (int i = 0; i < sqlReader.FieldCount; i++)
+                        {
+                            megjelenitoString.Add(sqlReader.GetValue(i).ToString()+"\n");
+                        }
+                    }
+                }
+            }
+            return megjelenitoString;
+        }
+
+        public List<string> Megtekint_old(string fa) //RÉGI METODUS
         {
             string queryString = "SELECT a.Id, a.FeladatId, a.UserId FROM FeladatKiosztasTable a " +
                                  "INNER JOIN FeladatTable b ON a.FeladatId = b.Id " +
@@ -163,5 +218,7 @@ namespace NewTodoApp
 
             return megjelenitStr;
         }
+
+
    }
 }
